@@ -2,215 +2,187 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>GRYFT | Pulse Discovery</title>
+    <title>Gryfo | Discovery</title>
     <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --neon: #00ffcc; --bg: #050505; --panel: #0a0a0a; --card-bg: #111; }
-        
-        /* HIDE SCROLLBARS BUT ALLOW SCROLLING */
-        * {
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge */
-        }
-        *::-webkit-scrollbar {
-            display: none; /* Chrome/Safari */
-        }
+        :root { --bg: #F0F2F5; --text: #1d1d1f; }
+        * { margin: 0; padding: 0; box-sizing: border-box; scrollbar-width: none; }
+        body { background: var(--bg); font-family: 'Outfit', sans-serif; color: var(--text); overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
 
-        body { 
-            margin: 0; 
-            background: var(--bg); 
-            color: white; 
-            font-family: 'Inter', sans-serif; 
-            display: flex; 
-            height: 100vh; 
-            width: 100vw;
-            overflow: hidden; 
-        }
-
-        /* HEADER / LOGO */
-        .logo { 
-            position: fixed; top: 25px; left: 30px; font-weight: 950; z-index: 100; 
-            font-size: 2.5rem; /* Bigger Logo */
-            letter-spacing: -2px; 
-            background: linear-gradient(to bottom, rgba(5,5,5,1), rgba(5,5,5,0)); 
-            padding: 10px 20px; 
-            pointer-events: none; 
-        }
-        .logo span { color: var(--neon); text-shadow: 0 0 20px rgba(0, 255, 204, 0.5); }
-
-        /* LEFT: Media Preview */
-        #preview-panel { 
-            width: 0; 
-            background: var(--panel); 
-            border-right: 1px solid #1a1a1a; 
-            transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
-            overflow-y: scroll; 
-            display: flex; 
-            flex-direction: column; 
-            z-index: 20;
-        }
-        
-        /* CENTER: The Main Wall */
-        #main-wall { 
-            flex: 1; 
-            padding: 120px 40px 40px 40px; 
-            overflow-y: scroll; 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
-            gap: 25px; 
-            transition: 0.5s; 
-        }
-
-        /* RIGHT: Dashboard Expansion */
-        #dashboard-panel { 
-            width: 0; 
-            background: var(--panel); 
-            border-left: 2px solid var(--neon); 
-            transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
-            overflow-y: scroll; 
-            z-index: 20; 
-            position: relative;
-        }
-
-        /* Expanded States */
-        .preview-open { width: 22vw !important; padding: 30px !important; }
-        .dashboard-open { width: 50vw !important; padding: 60px !important; }
-
-        /* GRYFT CARDS */
-        .gryft-card { 
-            background: var(--card-bg); 
-            border: 1px solid #222; 
-            border-radius: 12px; 
-            height: 320px; 
-            cursor: pointer; 
-            display: flex; 
-            flex-direction: column; 
-            transition: 0.3s ease; 
-            overflow: hidden;
-        }
-        .gryft-card:hover { 
-            border-color: var(--neon); 
-            transform: translateY(-8px); 
-            box-shadow: 0 15px 40px rgba(0,255,204,0.15); 
-        }
-        
-        .topic-image { 
-            flex: 1; 
+        /* HEADER - MIDDLE SEARCH */
+        .header { 
             width: 100%; 
-            background-size: cover; 
-            background-position: center; 
-            filter: grayscale(30%) brightness(0.8); 
-            transition: 0.5s;
+            padding: 20px 60px; 
+            display: grid; 
+            grid-template-columns: 1fr 2fr 1fr; /* Creates a three-column layout to center middle */
+            align-items: center; 
+            background: var(--bg); 
+            z-index: 1000; 
         }
-        .gryft-card:hover .topic-image { filter: grayscale(0%) brightness(1.1); scale: 1.05; }
         
-        .card-label { 
-            padding: 18px; 
-            font-size: 0.85rem; 
-            font-weight: 900; 
-            text-align: center; 
-            background: #151515; 
-            letter-spacing: 2px;
-            border-top: 1px solid #222;
+        .logo { font-size: 1.8rem; font-weight: 800; cursor: pointer; grid-column: 1; }
+        
+        .search-wrapper { 
+            grid-column: 2; 
+            position: relative; 
+            width: 100%; 
+            max-width: 450px; 
+            margin: 0 auto; 
+        }
+        
+        #search-input { 
+            width: 100%; padding: 14px 24px; padding-left: 50px; border-radius: 50px; 
+            border: none; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            font-family: inherit; font-size: 1rem; outline: none; transition: 0.3s;
+        }
+        #search-input:focus { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .search-icon { position: absolute; left: 20px; top: 14px; color: #aaa; font-size: 1.1rem; }
+
+        /* LAYOUT SLIDE LOGIC */
+        #viewport { display: flex; flex: 1; width: 100vw; transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        .wall-active #viewport { transform: translateX(-20vw); }
+        
+        #content-scroller { flex: 1; overflow-y: scroll; padding: 20px 60px 60px 60px; height: 100%; }
+        
+        .section-block { margin-bottom: 50px; }
+        .section-header { margin-bottom: 20px; }
+        .section-header h2 { font-size: 1.8rem; font-weight: 600; margin-bottom: 4px; }
+        .section-header p { color: #888; font-size: 0.95rem; }
+
+        /* COMPACT CARDS */
+        .carousel-container { position: relative; }
+        .card-grid { display: flex; gap: 18px; overflow-x: auto; padding: 15px 0; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
+
+        .wollo-card { 
+            min-width: 230px; height: 330px; background: #fff; border-radius: 35px; 
+            padding: 22px; display: flex; flex-direction: column; 
+            cursor: pointer; transition: 0.4s; scroll-snap-align: start; flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .wollo-card:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.06); }
+        
+        /* BOLD CENTERED HASHTAG */
+        .card-visual { 
+            width: 100%; flex: 1; border-radius: 25px; 
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden; padding: 15px;
+        }
+        .hashtag-display { 
+            color: #fff; font-size: 1.7rem; font-weight: 800; 
+            text-align: center; word-break: break-word; 
+            line-height: 1.1; letter-spacing: -0.8px;
+        }
+        
+        .card-footer-title { 
+            margin-top: 18px; font-size: 0.95rem; font-weight: 600; 
+            color: #333; text-align: left; padding-left: 5px;
         }
 
-        /* Social Posts (Left) */
-        .social-post { background: #121212; border-radius: 12px; margin-bottom: 25px; border: 1px solid #222; overflow: hidden; }
-        .social-img { width: 100%; height: 220px; background-size: cover; background-position: center; }
-
-        .close-btn { 
-            position: absolute; top: 30px; right: 40px; cursor: pointer; color: var(--neon); 
-            font-size: 0.7rem; border: 1px solid var(--neon); padding: 10px 20px; border-radius: 4px; 
-            letter-spacing: 2px; transition: 0.2s;
+        /* ARROWS */
+        .nav-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 44px; height: 44px; background: #fff; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08); cursor: pointer; z-index: 10; border: none; transition: 0.2s;
         }
-        .close-btn:hover { background: var(--neon); color: black; }
+        .nav-arrow:hover { background: #000; color: #fff; }
+        .prev-arrow { left: -22px; } .next-arrow { right: -22px; }
+
+        /* DASHBOARD */
+        #dashboard { position: fixed; right: -50vw; top: 0; width: 50vw; height: 100vh; background: #fff; border-left: 1px solid #eee; transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 80px 60px; z-index: 2000; }
+        .wall-active #dashboard { right: 0; }
+        .close-btn { cursor: pointer; padding: 10px 20px; background: #f5f5f7; border-radius: 20px; font-weight: 600; display: inline-block; margin-bottom: 30px; }
     </style>
 </head>
 <body>
 
-    <div class="logo">GRY<span>FT</span></div>
-
-    <div id="preview-panel">
-        <p style="color: var(--neon); letter-spacing: 4px; font-size: 0.65rem; margin-bottom: 30px;">[ VISUAL_STREAM_ACTIVE ]</p>
-        <div id="social-feed"></div>
-    </div>
-
-    <div id="main-wall"></div>
-
-    <div id="dashboard-panel">
-        <div class="close-btn" onclick="closeAll()">EXIT_TERMINAL</div>
-        <h1 id="dash-title" style="color: var(--neon); font-size: 4.5rem; margin: 0; font-weight: 900;"></h1>
-        <p style="color: #444; font-size: 0.8rem; margin-top: 10px; letter-spacing: 8px;">INSIGHTS // SECTOR_CAPTURE</p>
+    <header class="header">
+        <div class="logo" onclick="closeDash()">gryfo</div>
         
-        <div style="margin-top: 70px;">
-            <h2 style="color: #666; font-size: 0.9rem; letter-spacing: 3px; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 25px;">SUMMARY_LOG</h2>
-            <p id="summary-text" style="line-height: 2; color: #ddd; font-size: 1.3rem; font-weight: 300;"></p>
+        <div class="search-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" placeholder="Find hashtags..." oninput="handleSearch()">
         </div>
+        
+        <div style="grid-column: 3;"></div>
+    </header>
 
-        <div style="margin-top: 60px; background: #000; padding: 40px; border: 1px solid #1a1a1a; border-radius: 4px;">
-            <h3 style="margin-top:0; font-size: 0.8rem; color: var(--neon); letter-spacing: 4px;">RELEVANT_NODES</h3>
-            <div id="node-links" style="display: grid; gap: 20px; margin-top: 30px;"></div>
+    <div id="viewport">
+        <div id="content-scroller"></div>
+        <div id="dashboard">
+            <div class="close-btn" onclick="closeDash()">← Close</div>
+            <p id="dash-category" style="color: #999; text-transform: uppercase; letter-spacing: 2px; font-size: 0.75rem;"></p>
+            <h1 id="dash-title" style="font-size: 4.5rem; margin: 20px 0; line-height: 0.9; font-weight: 800;"></h1>
+            <p id="dash-desc" style="font-size: 1.6rem; color: #666; font-weight: 300; line-height: 1.4;"></p>
         </div>
     </div>
 
     <script>
         const socket = io();
-        const wall = document.getElementById('main-wall');
-        const dash = document.getElementById('dashboard-panel');
-        const prev = document.getElementById('preview-panel');
+        socket.on('init_pulse', (categories) => renderView(categories));
 
-        socket.on('init_pulse', (tags) => {
-            wall.innerHTML = '';
-            tags.forEach(tag => {
-                const cleanTag = tag.replace('#', '');
-                const card = document.createElement('div');
-                card.className = 'gryft-card';
-                
-                // Using Unsplash with specific keywords for "Topic Images"
-                card.innerHTML = `
-                    <div class="topic-image" style="background-image: url('https://source.unsplash.com/featured/?${cleanTag},technology')"></div>
-                    <div class="card-label">${tag.toUpperCase()}</div>
-                `;
-                
-                card.onclick = () => openGryft(tag);
-                wall.appendChild(card);
-            });
-        });
+        function renderView(data) {
+            const scroller = document.getElementById('content-scroller');
+            scroller.innerHTML = '';
 
-        function openGryft(tag) {
-            dash.classList.add('dashboard-open');
-            prev.classList.add('preview-open');
+            Object.keys(data).forEach(catName => {
+                const catData = data[catName];
+                const sectionId = catName.replace(/\s+/g, '-').toLowerCase();
 
-            const cleanTag = tag.replace('#', '');
-            document.getElementById('dash-title').innerText = tag;
-            document.getElementById('summary-text').innerText = `Primary signal detected for ${tag}. Cross-platform metadata suggests this niche is entering a period of high-frequency engagement. Current focus remains on decentralized development and community consolidation.`;
-
-            // Update Left Media Feed
-            const feed = document.getElementById('social-feed');
-            feed.innerHTML = '';
-            for(let i=0; i<4; i++) {
-                const div = document.createElement('div');
-                div.className = 'social-post';
-                div.innerHTML = `
-                    <div class="social-img" style="background-image: url('https://source.unsplash.com/featured/?${cleanTag},post,${i}')"></div>
-                    <div style="padding:20px; font-size:0.75rem; color: #666; line-height: 1.5;">
-                        <b style="color: #aaa;">@node_scout</b>: verified_entry detected in <b>${tag}</b> ecosystem.
+                const section = document.createElement('div');
+                section.className = 'section-block';
+                section.id = sectionId;
+                section.innerHTML = `
+                    <div class="section-header"><h2>${catName}</h2><p>${catData.description}</p></div>
+                    <div class="carousel-container">
+                        <button class="nav-arrow prev-arrow" onclick="slide('${sectionId}', -1)">←</button>
+                        <div class="card-grid" id="grid-${sectionId}"></div>
+                        <button class="nav-arrow next-arrow" onclick="slide('${sectionId}', 1)">→</button>
                     </div>
                 `;
-                feed.appendChild(div);
-            }
 
-            // Update Dashboard Nodes
-            document.getElementById('node-links').innerHTML = `
-                <div style="background:#0a0a0a; padding:20px; border:1px solid #222; font-size:0.8rem; color:var(--neon);">[ ACCESS_X_DATA ]</div>
-                <div style="background:#0a0a0a; padding:20px; border:1px solid #222; font-size:0.8rem; color:var(--neon);">[ JOIN_DISCORD_ARENA ]</div>
-            `;
+                const grid = section.querySelector('.card-grid');
+                catData.items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'wollo-card';
+                    card.dataset.tag = item.tag.toLowerCase();
+                    card.onclick = () => openDash(item, catName);
+                    card.innerHTML = `
+                        <div class="card-visual" style="background: ${item.color}">
+                            <div class="hashtag-display">${item.tag}</div>
+                        </div>
+                        <div class="card-footer-title">${item.title}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+                scroller.appendChild(section);
+            });
         }
 
-        function closeAll() {
-            dash.classList.remove('dashboard-open');
-            prev.classList.remove('preview-open');
+        function handleSearch() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            document.querySelectorAll('.section-block').forEach(section => {
+                let hasMatch = false;
+                section.querySelectorAll('.wollo-card').forEach(card => {
+                    const match = card.dataset.tag.includes(query);
+                    card.style.display = match ? 'flex' : 'none';
+                    if (match) hasMatch = true;
+                });
+                section.style.display = hasMatch ? 'block' : 'none';
+            });
         }
+
+        function slide(id, dir) { document.getElementById(`grid-${id}`).scrollBy({ left: 250 * 3 * dir, behavior: 'smooth' }); }
+        
+        function openDash(item, cat) {
+            document.body.classList.add('wall-active');
+            document.getElementById('dash-category').innerText = cat;
+            document.getElementById('dash-title').innerText = item.tag;
+            document.getElementById('dash-desc').innerText = item.title;
+        }
+        
+        function closeDash() { document.body.classList.remove('wall-active'); }
     </script>
 </body>
 </html>
